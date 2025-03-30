@@ -1,0 +1,15 @@
+{
+    "name": "文本转语音",
+    "short_name": "TTS",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2563EB"
+}
