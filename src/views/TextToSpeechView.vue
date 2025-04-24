@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const endpoint = ref('http://127.0.0.1:9997')
-const model = ref('FishSpeech-1.5')
+const endpoint = ref('http://15.36.180.48:9997')
+const apiKey = ref('sk-oLRc07ucwTJmw')
+const model = ref('MegaTTS3')
 const prompt = ref('')
+const voice = ref('') // 添加 voice 变量
 const isStreaming = ref(false)
 const audioUrl = ref('')
 const isLoading = ref(false)
@@ -35,37 +37,57 @@ const generateSpeech = async () => {
 
   try {
     let formData: FormData | null = null
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+    }
+
+    // 添加 API Key 到 headers
+    if (apiKey.value) {
+      headers['Authorization'] = `Bearer ${apiKey.value}`
+    }
+
+    const requestBody = {
+      model: model.value,
+      input: prompt.value,
+      stream: isStreaming.value,
+      speed: speed.value,
+    }
+    
+    // 只有当 voice 有值时才添加到请求中
+    if (voice.value) {
+      requestBody.voice = voice.value
+    }
 
     if (referenceAudio.value) {
       formData = new FormData()
       formData.append('prompt_speech', referenceAudio.value)
       formData.append('model', model.value)
       formData.append('input', prompt.value)
-      formData.append('voice', 'echo')
+      if (voice.value) {
+        formData.append('voice', voice.value)
+      }
       formData.append('stream', String(isStreaming.value))
       formData.append('speed', String(speed.value))
       if (referenceText.value) {
         formData.append('kwargs', JSON.stringify({ prompt_text: referenceText.value }))
       }
     }
+    console.log({
+      method: 'POST',
+      headers: formData ? headers : {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: formData || JSON.stringify(requestBody),
+    })
 
     const response = await fetch(`${endpoint.value}/v1/audio/speech`, {
       method: 'POST',
-      headers: formData
-        ? undefined
-        : {
-            accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-      body:
-        formData ||
-        JSON.stringify({
-          model: model.value,
-          input: prompt.value,
-          voice: 'echo',
-          stream: isStreaming.value,
-          speed: speed.value,
-        }),
+      headers: formData ? headers : {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: formData || JSON.stringify(requestBody),
     })
 
     if (!response.ok) {
@@ -121,6 +143,15 @@ const clearReference = () => {
             />
           </div>
           <div class="config-item">
+            <label>API Key (可选):</label>
+            <input
+              v-model="apiKey"
+              type="text"
+              class="config-input"
+              placeholder="请输入 API Key"
+            />
+          </div>
+          <div class="config-item">
             <label>模型:</label>
             <input v-model="model" type="text" class="config-input" placeholder="FishSpeech-1.5" />
           </div>
@@ -138,6 +169,11 @@ const clearReference = () => {
             @input="updateWordCount(prompt)"
           ></textarea>
           <div class="word-count">{{ wordCount }}/500</div>
+        </div>
+
+        <div class="voice-input-section">
+          <label>音色 (可选):</label>
+          <input v-model="voice" type="text" class="voice-input" placeholder="请输入音色" />
         </div>
 
         <div class="reference-section">
@@ -350,6 +386,35 @@ h1 {
   bottom: 1rem;
   color: #666;
   font-size: 0.875rem;
+}
+
+.voice-input-section {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.voice-input-section label {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.voice-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.voice-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .reference-section {
